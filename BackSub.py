@@ -1,0 +1,66 @@
+'''
+    backSub() function takes in the Raman spectrum and corresponding
+    background, fits the background to the spectrum and subtracts it.
+
+    This is part of a Raman spectrum analysis toolkit.
+
+    Yiran Hu (yiranhu@gatech.edu)
+    Epitaxial Graphene Lab
+    School of Physics
+    Georgia Tech
+'''
+
+import numpy as np
+from matplotlib import pyplot
+from numpy import sum
+
+def backSub(X, Y, st, nd, shft, plt = False):
+    if np.isnan(shft):
+        sqdmin = np.inf
+        for i in range(-5, 6):
+            ans = backSub(X, Y, st, nd, i)
+            if ans[1] < sqdmin:
+                sqdmin = ans[1]
+                bestAns = ans
+        return bestAns
+    else:
+        d0 = X[:, 0]
+        d1 = X[:, 1]
+        if X.shape[0] != Y.shape[0] or X[0, 0] != Y[0, 0]:
+            raise BackgroundError("Background doesn't match")
+        d2 = Y[:, 1]
+
+        if shft > 0:
+            d0 = d0[shft:]
+            d1 = d1[shft:]
+            d2 = d2[0:-shft]
+        elif shft < 0:
+            d0 = d0[0:shft]
+            d1 = d1[0:shft]
+            d2 = d2[-shft:]
+
+        msk = (d0 > st) & (d0 < nd)
+        x = d1[msk]
+        y = d2[msk]
+        A = np.matrix([[sum(y**2), sum(y)], [sum(y), y.shape[0]]])
+        B = np.matrix([[sum(x*y)], [sum(x)]])
+        sol = A.I * B
+        d3 = d2 * (sol[0, 0]) + sol[1, 0]
+        d4 = d1 - d3
+        diff = x - (y * (sol[0, 0]) + sol[1, 0])
+        sqd = sum(diff**2)
+        d1 = d1.reshape([-1, 1])
+        d3 = d3.reshape([-1, 1])
+        d4 = d4.reshape([-1, 1])
+        if plt:
+            l1 = pyplot.plot(d0, np.concatenate((d1, d3, d4), axis = 1))
+            pyplot.show()
+        return (d4, sqd, shft, d3)
+
+class BackgroundError(Exception):
+
+    def __init__(self, msg):
+        self.msg = msg
+
+    def __str__(self):
+        return repr(self.msg)
