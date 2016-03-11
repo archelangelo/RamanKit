@@ -10,8 +10,9 @@
 # Georgia Tech
 
 import numpy as np
+import BackSub as bs
 
-class RamanData():
+class SpecData():
 
     def __init__(self, fileName = None, a = None, b = None):
         if fileName == None:
@@ -47,7 +48,6 @@ class RamanData():
                         self.setDim(c = 2) # Find the dimensions automatically
                 else:
                     self.setDim(c = 2)
-
 
     def getSpec(self, i):
         return self._data[[0, i + 1], :]
@@ -98,6 +98,14 @@ class RamanData():
             self._dim = np.array([a, b, d], dtype = int)
             if n % a != 0:
                 raise DimWarning("Warning: auto dimension not devisible")
+
+    def backSub(self, bg, st = 1700, nd = 2100):
+        n = self._data.shape[0]
+        for i in range(0, n):
+            x = self.getSpec(i)
+            y = bs.backSub(x, bg, shft = np.nan)
+
+
 
 class SpectrumInputError(Exception):
 

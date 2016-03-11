@@ -14,7 +14,7 @@ import numpy as np
 from matplotlib import pyplot
 from numpy import sum
 
-def backSub(X, Y, st, nd, shft, plt = False):
+def backSub(X, Y, st = 1700, nd = 2100, shft = 0, plt = False):
     if np.isnan(shft):
         sqdmin = np.inf
         for i in range(-5, 6):
@@ -55,7 +55,7 @@ def backSub(X, Y, st, nd, shft, plt = False):
         if plt:
             l1 = pyplot.plot(d0, np.concatenate((d1, d3, d4), axis = 1))
             pyplot.show()
-        return (d4, sqd, shft, d3)
+        return (d4.reshape([1]), sqd, shft, d3.reshape([1]))
 
 class BackgroundError(Exception):
 
