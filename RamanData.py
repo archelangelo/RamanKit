@@ -11,6 +11,7 @@
 
 import numpy as np
 import BackSub as bs
+import sklearn.decomposition as skd
 
 class SpecData():
 
@@ -105,7 +106,15 @@ class SpecData():
             x = self.getSpec(i)
             y = bs.backSub(x, bg, shft = np.nan)
 
-
+    def NMF(self, nc = 2, use = None):
+        if use != None:
+            use = np.array(use) + 1
+            x = self._data[use]
+        else:
+            x = self._data[1:]
+        t = skd.NMF(n_components = nc, init = 'random', random_state = 0)
+        t.fit(x)
+        return t
 
 class SpectrumInputError(Exception):
 
