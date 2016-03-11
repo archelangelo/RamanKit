@@ -1,14 +1,14 @@
-'''
-    backSub() function takes in the Raman spectrum and corresponding
-    background, fits the background to the spectrum and subtracts it.
+#!/usr/bin/env python3
+# backSub() function takes in the Raman spectrum and corresponding
+# background, fits the background to the spectrum and subtracts it.
+#
+# This is part of a Raman spectrum analysis toolkit.
+#
+# Yiran Hu (yiranhu@gatech.edu)
+# Epitaxial Graphene Lab
+# School of Physics
+# Georgia Tech
 
-    This is part of a Raman spectrum analysis toolkit.
-
-    Yiran Hu (yiranhu@gatech.edu)
-    Epitaxial Graphene Lab
-    School of Physics
-    Georgia Tech
-'''
 
 import numpy as np
 from matplotlib import pyplot
@@ -24,11 +24,11 @@ def backSub(X, Y, st, nd, shft, plt = False):
                 bestAns = ans
         return bestAns
     else:
-        d0 = X[:, 0]
-        d1 = X[:, 1]
-        if X.shape[0] != Y.shape[0] or X[0, 0] != Y[0, 0]:
+        d0 = X[0]
+        d1 = X[1]
+        if X.shape[1] != Y.shape[1] or X[0, 0] != Y[0, 0]:
             raise BackgroundError("Background doesn't match")
-        d2 = Y[:, 1]
+        d2 = Y[1]
 
         if shft > 0:
             d0 = d0[shft:]
@@ -59,7 +59,7 @@ def backSub(X, Y, st, nd, shft, plt = False):
 
 class BackgroundError(Exception):
 
-    def __init__(self, msg):
+    def __init__(self, msg = None):
         self.msg = msg
 
     def __str__(self):
