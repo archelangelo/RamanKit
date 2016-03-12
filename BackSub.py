@@ -53,7 +53,7 @@ def backSub(X, Y, st = 1700, nd = 2100, shft = 0, plt = False):
         d3 = d3.reshape([-1, 1])
         d4 = d4.reshape([-1, 1])
         if plt:
-            l1 = pyplot.plot(d0, np.concatenate((d1, d3, d4), axis = 1))
+            l1, l2, l3 = pyplot.plot(d0, np.concatenate((d1, d3, d4), axis = 1))
             pyplot.show()
         return (d4.reshape([1]), sqd, shft, d3.reshape([1]))
 

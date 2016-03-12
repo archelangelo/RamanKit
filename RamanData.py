@@ -16,10 +16,10 @@ import sklearn.decomposition as skd
 class SpecData():
 
     def __init__(self, fileName = None, a = None, b = None):
-        if fileName == None:
+        if fileName is None:
             self._data = None
             self._coord = None
-            self._dim = None
+            self._dim = np.array([0, 1, 1])
         else:
             try:
                 x = np.genfromtxt(fileName, delimiter = '\t')
@@ -62,11 +62,11 @@ class SpecData():
         if np.isnan(x[0, 0]):
             raise SpectrumInputError()
         else:
-            if self._data == None:
+            if self._data is None:
                 self._data = x.T
                 self._coord = coord
             else:
-                self._data = np.concatenate((self._data, x.T))
+                self._data = np.concatenate((self._data, x[:, [1]].T))
                 self._coord = np.concatenate((self._coord, coord))
             self.setDim(c = 1)
 
@@ -79,14 +79,14 @@ class SpecData():
         #        error)
         #     2: automatically decide the dimension based on the coordicates
         if c == 0:
-            if a == None or b == None or d == None:
+            if a is None or b is None or d is None:
                 raise ValueError("Invalid dimension arguments")
             self._dim = np.array([a, b, d], dtype = int)
             if a * b * d != self._data.shape[0] - 1:
                 raise DimWarning()
         elif c == 1:
             self._dim[0] += 1
-            if self._dim[1] != 1 or self.dim[2] != 1:
+            if self._dim[1] != 1 or self._dim[2] != 1:
                 raise DimWarning("Warning: tempting to increase 0th dimension \
                 with others not being 1")
         elif c == 2:
@@ -107,6 +107,7 @@ class SpecData():
             y = bs.backSub(x, bg, shft = np.nan)
 
     def NMF(self, nc = 2, use = None):
+        self.baseSub()
         if use != None:
             use = np.array(use) + 1
             x = self._data[use]
@@ -115,6 +116,11 @@ class SpecData():
         t = skd.NMF(n_components = nc, init = 'random', random_state = 0)
         t.fit(x)
         return t
+
+    def baseSub(self):
+        m = self._data[1:].min(1)
+        for i in range(0, m.shape[0]):
+            self._data[i + 1] -= m[i]
 
 class SpectrumInputError(Exception):
 
