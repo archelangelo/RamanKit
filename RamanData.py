@@ -108,7 +108,7 @@ class SpecData():
 
     def NMF(self, nc = 2, use = None):
         self.baseSub()
-        if use != None:
+        if not use is None:
             use = np.array(use) + 1
             x = self._data[use]
         else:
