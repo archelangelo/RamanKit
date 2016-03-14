@@ -55,7 +55,7 @@ def backSub(X, Y, st = 1700, nd = 2100, shft = 0, plt = False):
         if plt:
             l1, l2, l3 = pyplot.plot(d0, np.concatenate((d1, d3, d4), axis = 1))
             pyplot.show()
-        return (d4.reshape([1]), sqd, shft, d3.reshape([1]))
+        return (d4.reshape([-1]), sqd, shft, d3.reshape([-1]))
 
 class BackgroundError(Exception):
 

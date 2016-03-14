@@ -50,6 +50,11 @@ class SpecData():
                 else:
                     self.setDim(c = 2)
 
+    def copyFrom(self, target):
+        self._data = target._data.copy()
+        self._coord = target._coord.copy()
+        self._dim = target._dim.copy()
+
     def getSpec(self, i):
         return self._data[[0, i + 1], :]
 
@@ -102,18 +107,22 @@ class SpecData():
 
     def backSub(self, bg, st = 1700, nd = 2100):
         n = self._data.shape[0]
-        for i in range(0, n):
+        newSpec = SpecData()
+        newSpec.copyFrom(self)
+        for i in range(0, n - 1):
             x = self.getSpec(i)
-            y = bs.backSub(x, bg, shft = np.nan)
+            y = bs.backSub(x, bg, shft = 0)
+            newSpec._data[i + 1] = y[0]
+        return newSpec
 
-    def NMF(self, nc = 2, use = None):
+    def NMF(self, use = None, *args, **kwargs):
         self.baseSub()
         if not use is None:
             use = np.array(use) + 1
             x = self._data[use]
         else:
             x = self._data[1:]
-        t = skd.NMF(n_components = nc, init = 'random', random_state = 0)
+        t = skd.NMF(args, kwargs)
         t.fit(x)
         return t
 
