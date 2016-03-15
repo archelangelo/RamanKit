@@ -117,12 +117,13 @@ class SpecData():
 
     def NMF(self, use = None, *args, **kwargs):
         self.baseSub()
+        self.normalize()
         if not use is None:
             use = np.array(use) + 1
             x = self._data[use]
         else:
             x = self._data[1:]
-        t = skd.NMF(args, kwargs)
+        t = skd.NMF(*args, **kwargs)
         t.fit(x)
         return t
 
@@ -130,6 +131,10 @@ class SpecData():
         m = self._data[1:].min(1)
         for i in range(0, m.shape[0]):
             self._data[i + 1] -= m[i]
+
+    def normalize(self):
+        m = self._data[1:].max()
+        self._data[1:] /= m
 
 class SpectrumInputError(Exception):
 
