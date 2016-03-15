@@ -29,15 +29,13 @@ def backSub(X, Y, st = 1700, nd = 2100, shft = 0, plt = False):
         if X.shape[1] != Y.shape[1] or X[0, 0] != Y[0, 0]:
             raise BackgroundError("Background doesn't match")
         d2 = Y[1]
-
-        if shft > 0:
-            d0 = d0[shft:]
-            d1 = d1[shft:]
-            d2 = d2[0:-shft]
-        elif shft < 0:
-            d0 = d0[0:shft]
-            d1 = d1[0:shft]
-            d2 = d2[-shft:]
+        if shft != 0:
+            nans = np.empty([abs(shft)])
+            nans[:] = np.nan
+            if shft > 0:
+                d2 = np.concatenate((nans, d2[0:-shft]))
+            elif shft < 0:
+                d2 = np.concatenate((d2[-shft:], nans))
 
         msk = (d0 > st) & (d0 < nd)
         x = d1[msk]

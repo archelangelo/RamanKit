@@ -111,7 +111,7 @@ class SpecData():
         newSpec.copyFrom(self)
         for i in range(0, n - 1):
             x = self.getSpec(i)
-            y = bs.backSub(x, bg, shft = 0)
+            y = bs.backSub(x, bg, shft = np.nan)
             newSpec._data[i + 1] = y[0]
         return newSpec
 
