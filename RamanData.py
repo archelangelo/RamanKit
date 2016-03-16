@@ -127,6 +127,17 @@ class SpecData():
         t.fit(x)
         return t
 
+    def SVD(self, use = None):
+        self.baseSub()
+        self.normalize()
+        if not use is None:
+            use = np.array(use) + 1
+            x = self._data[use]
+        else:
+            x = self._data[1:]
+        s = np.linalg.svd(x, full_matrices = False, compute_uv = False)
+        return s
+
     def baseSub(self):
         m = self._data[1:].min(1)
         for i in range(0, m.shape[0]):
