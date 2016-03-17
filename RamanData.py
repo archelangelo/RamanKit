@@ -147,6 +147,9 @@ class SpecData():
         m = self._data[1:].max()
         self._data[1:] /= m
 
+    def peakAnalysis(self, st = 2500, nd = 2900):
+        
+
 class SpectrumInputError(Exception):
 
     def __init__(self, msg = "Single spectrum expected\nMultiple found"):
