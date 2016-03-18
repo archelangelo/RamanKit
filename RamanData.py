@@ -10,6 +10,7 @@
 # Georgia Tech
 
 import numpy as np
+import scipy as scp
 import BackSub as bs
 import sklearn.decomposition as skd
 
@@ -24,7 +25,7 @@ class SpecData():
             try:
                 x = np.genfromtxt(fileName, delimiter = '\t')
             except Exception as e:
-                print("Problem reading the file in __init__\nError message: ", \
+                print("Problem reading the file in __init__\nError message: ",
                 e)
                 raise
             if not np.isnan(x[0, 0]): # Single point spectrum
@@ -128,6 +129,7 @@ class SpecData():
         return t
 
     def SVD(self, use = None):
+        # returns the diagonal elements of matrix s in M = UsV model
         self.baseSub()
         self.normalize()
         if not use is None:
@@ -148,7 +150,22 @@ class SpecData():
         self._data[1:] /= m
 
     def peakAnalysis(self, st = 2500, nd = 2900):
-        
+        mask = (self._data[0] > st) & (self._data[0] < nd)
+        self._fit = self._data[0, mask].reshape([1, -1])
+        self._fitParams = empty([0, 4]) # y = P0 / ((x - P1)^2 + P2) + P3
+        x = self._fit[0]
+        p0 = np.array([4443, 2700, 313, 0])
+        for y in self._data[1:, mask]:
+            params = scp.optimize.leastsq(lorentzRes, p0, args = (x, y))
+            self._fitParam = np.append(self._fitParams, params, axis = 0)
+            self._fit = np.append(self._fit, lorentz(params, x))
+
+def lorentz(params, x):
+    P0, P1, P2, P3 = params
+    return P0 / ((x - P1)**2 + P2) + P3
+
+def lorentzRes(params, x, y):
+    return y - lorentz(params, x)
 
 class SpectrumInputError(Exception):
 
