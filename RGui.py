@@ -17,9 +17,8 @@ import RamanData as rd
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import (QMainWindow, QAction, QFileDialog, QApplication,
     QSplitter, QSizePolicy, QFrame, QTabWidget, QListWidget, QListWidgetItem,
-    QHBoxLayout, QPushButton, QGridLayout, QAbstractItemView, QDoubleSpinBox,
-    QSpinBox, QLabel)
-# from Qt.QtGui import QDoubleValidator
+    QHBoxLayout, QPushButton, QGridLayout, QAbstractItemView, QLineEdit, QLabel)
+from PyQt5.QtGui import QRegExpValidator
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -78,38 +77,33 @@ class RGui(QMainWindow):
         mainCtr = QFrame(self.ctrPane)
         mainCtr.setFrameShape(QFrame.StyledPanel)
         mainCtr.setFrameShadow(QFrame.Sunken)
-
+        # buttons and controls
         backSubButton = QPushButton('Background Subtraction', mainCtr)
         backSubButton.clicked.connect(self.backSub)
-
+        plotButton = QPushButton('Plot', mainCtr)
+        plotButton.clicked.connect(self.updatePlot1)
+        # layout
         mainLayout = QGridLayout(mainCtr)
         mainLayout.addWidget(backSubButton, 0, 0)
+        mainLayout.addWidget(plotButton, 0, 1)
         mainCtr.setLayout(mainLayout)
 
         self.ctrPane.addTab(mainCtr, 'Main Ctrol')
 
+        # NMF control set up
         NMFCtr = QFrame(self.ctrPane)
         NMFCtr.setFrameShape(QFrame.StyledPanel)
         NMFCtr.setFrameShadow(QFrame.Sunken)
-
-        self.alphaBox = MyDoubleSpinBox(NMFCtr)
-        self.alphaE = ESpinBox(NMFCtr)
-        self.l1RatioBox = MyDoubleSpinBox(NMFCtr)
-        self.l1RatioE = ESpinBox(NMFCtr)
+        # input & buttons
+        self.alphaBox = MyDoubleBox(NMFCtr)
+        self.l1RatioBox = MyDoubleBox(NMFCtr)
         NMFButton = QPushButton('NMF', NMFCtr)
         NMFButton.clicked.connect(self.NMF)
-
+        # layout
         NMFLayout = QGridLayout(NMFCtr)
-
         NMFLayout.addWidget(self.alphaBox, 0, 0)
-        NMFLayout.addWidget(QLabel('E'), 0, 1)
-        NMFLayout.addWidget(self.alphaE, 0, 2)
-
-        NMFLayout.addWidget(self.l1RatioBox, 1, 0)
-        NMFLayout.addWidget(QLabel('E'), 1, 1)
-        NMFLayout.addWidget(self.l1RatioE, 1, 2)
-
-        NMFLayout.addWidget(NMFButton, 2, 0, 1, 3)
+        NMFLayout.addWidget(self.l1RatioBox, 0, 1)
+        NMFLayout.addWidget(NMFButton, 1, 0, 1, 2)
 
         NMFCtr.setLayout(NMFLayout)
 
@@ -118,7 +112,8 @@ class RGui(QMainWindow):
     def openFile(self):
         fileName = QFileDialog.getOpenFileName(self, "Open file")
         if fileName[0]:
-            self.addSpec(rd.SpecData(fileName[0]), os.path.basename(fileName[0]))
+            self.addSpec(rd.SpecData(fileName[0]),
+                os.path.basename(fileName[0]))
 
     def addSpec(self, spec, title):
         # import spectra from file
@@ -135,11 +130,26 @@ class RGui(QMainWindow):
         for i in range(self.spec[-1]._coord.shape[0]):
             newItem = QListWidgetItem("[%d %d %d]" % \
                 tuple(self.spec[-1]._coord[i]), listWidget)
-            newItem.setData(QtCore.Qt.UserRole, QtCore.QVariant([len(self.spec) - 1, i]))
+            newItem.setData(QtCore.Qt.UserRole,
+                QtCore.QVariant([len(self.spec) - 1, i]))
             listWidget.addItem(newItem)
-        listWidget.itemDoubleClicked.connect(self.updatePlot)
+        listWidget.itemDoubleClicked.connect(self.updatePlot2)
 
-    def updatePlot(self, item):
+    # defines two update plot slots
+    def updatePlot1(self):
+        items = self.selectPane.currentWidget().selectedItems()
+        if not items:
+            pass # raise error
+        bArray = items[0].data(QtCore.Qt.UserRole)
+        n = int(bArray[0])
+        use = []
+        for item in items:
+            bArray = item.data(QtCore.Qt.UserRole)
+            use.append(int(bArray[1]))
+        use = np.array(use).reshape(-1)
+        self.canvas.updatePlot(self.spec[n], use)
+
+    def updatePlot2(self, item):
         bArray = item.data(QtCore.Qt.UserRole)
         n = int(bArray[0])
         i = int(bArray[1])
@@ -167,8 +177,8 @@ class RGui(QMainWindow):
 
         item = self.selectPane.currentWidget().item(0)
         n = item.data(QtCore.Qt.UserRole)[0]
-        alpha = self.alphaE.EValue(self.alphaBox)
-        l1Ratio = self.l1RatioE.EValue(self.l1RatioBox)
+        alpha = float(self.alphaBox.text())
+        l1Ratio = float(self.l1RatioBox.text())
         model = self.spec[n].NMF(n_components = 3, init = 'nndsvd',
             alpha = alpha, l1_ratio = l1Ratio, sparseness = 'data')
         newSpec = rd.SpecData()
@@ -181,23 +191,14 @@ class RGui(QMainWindow):
     def currentTabTitle(self):
         return self.selectPane.tabText(self.selectPane.currentIndex())
 
-class MyDoubleSpinBox(QDoubleSpinBox):
+class MyDoubleBox(QLineEdit):
+# an editing box accepting scientific notation as well
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.setRange(0., 1.)
-        self.setSingleStep(0.1)
-
-class ESpinBox(QSpinBox):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.setRange(-100, 0)
-
-    def EValue(self, doubleBox):
-        t1 = doubleBox.text()
-        t2 = self.text()
-        return float(t1 + 'E' + t2)
+        re = QtCore.QRegExp('([0-9]*\.[0-9]+|[0-9]+\.?[0-9]*)([eE]-?[0-9]+)?')
+        myRegValidator = QRegExpValidator(re, self)
+        self.setValidator(myRegValidator)
 
 class CanvasWidget(FigureCanvas):
 
