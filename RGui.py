@@ -34,10 +34,12 @@ class RGui(QMainWindow):
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setWindowTitle("RGui")
 
-        # File menu and Open action
+        # File menu
         self.fileMenu = self.menuBar().addMenu('&File')
         self.fileMenu.addAction('&Open', self.openFile,
             Qt.CTRL + Qt.Key_O)
+        self.fileMenu.addAction('&Save figure', self.saveFigure,
+            Qt.SHIFT + Qt.CTRL + Qt.Key_S)
 
         # Main widget and its layout
         # subWidget is embedded in the right half of mainWidget
@@ -82,14 +84,14 @@ class RGui(QMainWindow):
         backSubButton.clicked.connect(self.backSub)
         plotButton = QPushButton('Plot', mainCtr)
         plotButton.clicked.connect(self.updatePlot1)
-        plotPeak = QCheckBox('Plot fitted peak', mainCtr)
+        self.plotPeak = QCheckBox('Plot fitted peak', mainCtr)
         holdPlot = QCheckBox('Hold plot', mainCtr)
         holdPlot.stateChanged.connect(self.canvas.toggleHold)
         # layout
         mainLayout = QGridLayout(mainCtr)
         mainLayout.addWidget(backSubButton, 0, 0)
         mainLayout.addWidget(plotButton, 0, 1)
-        mainLayout.addWidget(plotPeak, 1, 0)
+        mainLayout.addWidget(self.plotPeak, 1, 0)
         mainLayout.addWidget(holdPlot, 1, 1)
         mainCtr.setLayout(mainLayout)
 
@@ -102,6 +104,7 @@ class RGui(QMainWindow):
         # input & buttons
         self.alphaBox = MyDoubleBox(NMFCtr)
         self.l1RatioBox = MyDoubleBox(NMFCtr)
+        self.loadSettings()
         NMFButton = QPushButton('NMF', NMFCtr)
         NMFButton.clicked.connect(self.NMF)
         # layout
@@ -114,11 +117,18 @@ class RGui(QMainWindow):
 
         self.ctrPane.addTab(NMFCtr, 'NMF Control')
 
+    # slots
+
     def openFile(self):
         fileName = QFileDialog.getOpenFileName(self, "Open file")
         if fileName[0]:
             self.addSpec(rd.SpecData(fileName[0]),
                 os.path.basename(fileName[0]))
+
+    def saveFigure(self):
+        fileName = QFileDialog.getSaveFileName(self, "Save current figure")
+        if fileName[0]:
+            self.canvas.saveFigure(fileName)
 
     def addSpec(self, spec, title):
         # import spectra from file
@@ -153,7 +163,7 @@ class RGui(QMainWindow):
             bArray = item.data(Qt.UserRole)
             use.append(int(bArray[1]))
         use = np.array(use).reshape(-1)
-        self.canvas.updatePlot(self.spec[n], use, plotPeak)
+        self.canvas.updatePlot(self.spec[n], use, self.plotPeak.isChecked())
 
     def updatePlot2(self, item):
         # slot for a single item
@@ -161,7 +171,7 @@ class RGui(QMainWindow):
         n = int(bArray[0])
         i = int(bArray[1])
         use = np.array(i).reshape(-1)
-        self.canvas.updatePlot(self.spec[n], use, plotPeak)
+        self.canvas.updatePlot(self.spec[n], use, self.plotPeak.isChecked())
 
     # Here comes the data analysis operations
 
@@ -199,12 +209,14 @@ class RGui(QMainWindow):
         self.saveSettings()
 
     def saveSettings(self):
-        settings = QSettings(QSettings.UserScope)
+        settings = QSettings(QSettings.UserScope, 'Georgia Tech', 'RamanGui',
+            self)
         settings.setValue('alpha', self.alphaBox.text())
         settings.setValue('l1Ratio', self.l1RatioBox.text())
 
-    def loadSetting(self):
-        settings = QSettings(QSettings.UserScope)
+    def loadSettings(self):
+        settings = QSettings(QSettings.UserScope, 'Georgia Tech', 'RamanGui',
+            self)
         if settings.contains('alpha'):
             self.alphaBox.setText(settings.value('alpha'))
         if settings.contains('l1Ratio'):
@@ -236,7 +248,8 @@ class CanvasWidget(FigureCanvas):
         super().updateGeometry()
 
         self.base = 0
-        settings = QSettings(QSettings.UserDomain)
+        settings = QSettings(QSettings.UserScope, 'Georgia Tech', 'RamanGui',
+            self)
         if settings.contains('ele'):
             self.ele = float(settings.value('ele'))
         else:
@@ -244,12 +257,19 @@ class CanvasWidget(FigureCanvas):
             self.ele = 20
 
     def updatePlot(self, spec, use, plotPeak = False):
-        
-        self.axes.plot(spec._data[[0]].T, spec._data[use + 1].T)
+        ter = np.arange(use.shape[0]) * self.ele + self.base
+        if self.axes.ishold():
+            self.base = ter[-1] + self.ele
+        ter = ter.reshape([1, -1])
+        self.axes.plot(spec._data[[0]].T, spec._data[use + 1].T + ter)
         self.draw()
+
+    def saveFigure(self, *args, **kwargs):
+        self.axes.get_figure().savefig(*args, **kwargs)
 
     def toggleHold(self, state):
         self.axes.hold(state)
+        self.base = 0
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
