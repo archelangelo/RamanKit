@@ -23,7 +23,7 @@ class SpecData():
             self._dim = np.array([0, 1, 1])
         else:
             try:
-                x = np.genfromtxt(fileName, delimiter = '\t')
+                x = np.genfromtxt(fileName, delimiter = '\t', dtype = np.float_)
             except Exception as e:
                 print("Problem reading the file in __init__\nError message: ",
                 e)
@@ -34,7 +34,7 @@ class SpecData():
                 self._dim = np.array([1, 1, 1])
             elif not np.isnan(x[0, 1]): # Line mapping spectra
                 self._data = x[:, 1:]
-                self._coord = np.zeros([x.shape[0] - 1, 3], dtype = float)
+                self._coord = np.zeros([x.shape[0] - 1, 3], dtype = np.float_)
                 self._coord[:, 0] = x[1:, 0]
                 self._dim = np.array([self._coord.shape[0], 1, 1])
             else: # 2-D mapping
@@ -60,21 +60,39 @@ class SpecData():
         return self._data[[0, i + 1], :]
 
     def addSpec(self, fileName, coord):
+        # single point file coord = [x, y, z]
+        # 1D file coord = [x, y, z], with one of them being NaN, otherwise use x
+        # 2D file coord = z
         try:
-            x = np.genfromtxt(fileName, delimiter = '\t')
+            x = np.genfromtxt(fileName, delimiter = '\t', dtype = np.float_)
         except Exception as e:
             print("Problem reading the file in addSpec\nError message: ", e)
             raise
         if np.isnan(x[0, 0]):
-            raise SpectrumInputError()
+            n_s = x.shape[0] - 1
+            if np.isnan(x[0, 1]): # 2D input
+                coord = np.full([n_s, 3], coord, dtype = np.float_)
+                coord[:, 0:2] = x[1:, 0:2]
+                x = x[:, 2:]
+                self._dim[2] += 1
+            else: # 1D
+                mask = np.isnan(coord).reshape([3])
+                if mask.sum() != 1:
+                    mask = np.array([True, False, False], dtype = bool)
+                coord = coord.repeat(coord, n_s, axis = 0)
+                coord[:, mask] = x[1:, 0]
+                self.setDim(c = 1) 
         else:
-            if self._data is None:
-                self._data = x.T
-                self._coord = coord
-            else:
-                self._data = np.concatenate((self._data, x[:, [1]].T))
-                self._coord = np.concatenate((self._coord, coord))
+            x = x.T
             self.setDim(c = 1)
+        if self._data is None:
+            self._data = x
+            self._coord = coord
+        else:
+            if not checkSpec(x[:, 0], self._data[0]):
+                raise SpectrumInputError("Spectrum x-axis doesn't match")
+            self._data = np.concatenate((self._data, x[1:, :]))
+            self._coord = np.concatenate((self._coord, coord))
 
     def getCoord(self, i):
         return self._coord[i]

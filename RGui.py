@@ -95,7 +95,7 @@ class RGui(QMainWindow):
         mainLayout.addWidget(holdPlot, 1, 1)
         mainCtr.setLayout(mainLayout)
 
-        self.ctrPane.addTab(mainCtr, 'Main Ctrol')
+        self.ctrPane.addTab(mainCtr, 'Main Control')
 
         # NMF control set up
         NMFCtr = QFrame(self.ctrPane)
@@ -109,9 +109,11 @@ class RGui(QMainWindow):
         NMFButton.clicked.connect(self.NMF)
         # layout
         NMFLayout = QGridLayout(NMFCtr)
-        NMFLayout.addWidget(self.alphaBox, 0, 0)
-        NMFLayout.addWidget(self.l1RatioBox, 0, 1)
-        NMFLayout.addWidget(NMFButton, 1, 0, 1, 2)
+        NMFLayout.addWidget(QLabel('α'), 0, 0)
+        NMFLayout.addWidget(QLabel('l1 ratio'), 1, 0)
+        NMFLayout.addWidget(self.alphaBox, 0, 1)
+        NMFLayout.addWidget(self.l1RatioBox, 1, 1)
+        NMFLayout.addWidget(NMFButton, 2, 0, 1, 2)
 
         NMFCtr.setLayout(NMFLayout)
 
