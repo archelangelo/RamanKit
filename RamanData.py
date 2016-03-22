@@ -30,19 +30,19 @@ class SpecData():
                 raise
             if not np.isnan(x[0, 0]): # Single point spectrum
                 self._data = x.T
-                self._coord = np.array([[0., 0., 0.]])
-                self._dim = np.array([1, 1, 1])
+                self._coord = np.array([[0., 0., 0.]], dtype = np.float_)
+                self._dim = np.array([1, 1, 1], dtype = int)
             elif not np.isnan(x[0, 1]): # Line mapping spectra
                 self._data = x[:, 1:]
                 self._coord = np.zeros([x.shape[0] - 1, 3], dtype = np.float_)
                 self._coord[:, 0] = x[1:, 0]
-                self._dim = np.array([self._coord.shape[0], 1, 1])
+                self._dim = np.array([self._coord.shape[0], 1, 1], dtype = int)
             else: # 2-D mapping
                 self._data = x[:, 2:]
-                self._coord = np.concatenate((x[1:, [0, 1]], \
-                np.zeros([x.shape[0] - 1, 1])), axis = 1)
+                self._coord = np.concatenate((x[1:, [0, 1]],
+                np.zeros([x.shape[0] - 1, 1], dtype = np.float_)), axis = 1)
                 # self._dim = np.array([self._coord.shape[0], 1])
-                if a != None and b != None:
+                if (not a is None) and (not b is None):
                     try:
                         self.setDim(a, b, 1)
                     except DimWarning:
@@ -81,7 +81,7 @@ class SpecData():
                     mask = np.array([True, False, False], dtype = bool)
                 coord = coord.repeat(coord, n_s, axis = 0)
                 coord[:, mask] = x[1:, 0]
-                self.setDim(c = 1) 
+                self.setDim(c = 1)
         else:
             x = x.T
             self.setDim(c = 1)
@@ -89,7 +89,7 @@ class SpecData():
             self._data = x
             self._coord = coord
         else:
-            if not checkSpec(x[:, 0], self._data[0]):
+            if not checkAxis(x[:, 0], self._data[0]):
                 raise SpectrumInputError("Spectrum x-axis doesn't match")
             self._data = np.concatenate((self._data, x[1:, :]))
             self._coord = np.concatenate((self._coord, coord))
@@ -184,6 +184,11 @@ def lorentz(params, x):
 
 def lorentzRes(params, x, y):
     return y - lorentz(params, x)
+
+def checkAxis(a, b):
+    a = a.reshape([-1])
+    b = b.reshape([-1])
+    return (a.shape[0] == b.shape[0]) and (a[0] == b[0]) and (a[-1] == b[-1])
 
 class SpectrumInputError(Exception):
 
