@@ -71,7 +71,8 @@ class SpecData():
         if np.isnan(x[0, 0]):
             n_s = x.shape[0] - 1
             if np.isnan(x[0, 1]): # 2D input
-                coord = np.full([n_s, 3], coord, dtype = np.float_)
+                coord = coord.reshape([-1])
+                coord = np.full([n_s, 3], coord[0], dtype = np.float_)
                 coord[:, 0:2] = x[1:, 0:2]
                 x = x[:, 2:]
                 self._dim[2] += 1
@@ -123,6 +124,12 @@ class SpecData():
             self._dim = np.array([a, b, d], dtype = int)
             if n % a != 0:
                 raise DimWarning("Warning: auto dimension not devisible")
+
+    def nSpec(self):
+        if self._data is None:
+            return 0
+        else:
+            return self._data.shape[0] - 1
 
     def backSub(self, bg, st = 1700, nd = 2100):
         n = self._data.shape[0]
