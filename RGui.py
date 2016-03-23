@@ -84,6 +84,8 @@ class RGui(QMainWindow):
         backSubButton.clicked.connect(self.backSub)
         plotButton = QPushButton('Plot', mainCtr)
         plotButton.clicked.connect(self.updatePlot1)
+        newTabButton = QPushButton('New tab', mainCtr)
+        newTabButton.clicked.connect(self.addTab)
         self.plotPeak = QCheckBox('Plot fitted peak', mainCtr)
         holdPlot = QCheckBox('Hold plot', mainCtr)
         holdPlot.stateChanged.connect(self.canvas.toggleHold)
@@ -91,8 +93,9 @@ class RGui(QMainWindow):
         mainLayout = QGridLayout(mainCtr)
         mainLayout.addWidget(backSubButton, 0, 0)
         mainLayout.addWidget(plotButton, 0, 1)
-        mainLayout.addWidget(self.plotPeak, 1, 0)
-        mainLayout.addWidget(holdPlot, 1, 1)
+        mainLayout.addWidget(newTabButton, 1, 0)
+        mainLayout.addWidget(self.plotPeak, 2, 0)
+        mainLayout.addWidget(holdPlot, 2, 1)
         mainCtr.setLayout(mainLayout)
 
         self.ctrPane.addTab(mainCtr, 'Main Control')
@@ -124,7 +127,7 @@ class RGui(QMainWindow):
     def openFile(self):
         fileName = QFileDialog.getOpenFileName(self, "Open file")
         if fileName[0]:
-            self.addSpec(rd.SpecData(fileName[0]),
+            self.addSpec(fileName[0],
                 os.path.basename(fileName[0]))
 
     def saveFigure(self):
@@ -132,25 +135,26 @@ class RGui(QMainWindow):
         if fileName[0]:
             self.canvas.saveFigure(fileName)
 
-    def addSpec(self, spec, title):
+    def addSpec(self, fileName, title):
         # import spectra from file
-        self.spec.append(spec)
-        if self.firstPlot:
-            listWidget = self.selectPane.currentWidget()
-            self.selectPane.setTabText(0, title)
-            self.firstPlot = False
-        else:
-            listWidget = QListWidget(self.selectPane)
-            listWidget.setSelectionMode(QAbstractItemView.ExtendedSelection)
-            self.selectPane.addTab(listWidget, title)
-
-        for i in range(self.spec[-1]._coord.shape[0]):
+        j = self.selectPane.currentIndex()
+        l = self.spec[j].nSpec()
+        listWidget = self.selectPane.currentWidget()
+        self.selectPane.setTabText(j, title)
+        self.spec[j].addSpec(fileName, np.array([[0, 0, 0]]))
+        for i in range(l + 1, self.spec[j]._coord.shape[0]):
             newItem = QListWidgetItem("[%d %d %d]" % \
-                tuple(self.spec[-1]._coord[i]), listWidget)
+                tuple(self.spec[j]._coord[i]), listWidget)
             newItem.setData(Qt.UserRole,
-                QVariant([len(self.spec) - 1, i]))
+                QVariant([j, i]))
             listWidget.addItem(newItem)
         listWidget.itemDoubleClicked.connect(self.updatePlot2)
+
+    def addTab(self):
+        listWidget = QListWidget(self.selectPane)
+        listWidget.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.selectPane.addTab(listWidget, 'Untitled')
+        self.spec.append(rd.SpecData())
 
     # defines two update plot slots
     def updatePlot1(self):
